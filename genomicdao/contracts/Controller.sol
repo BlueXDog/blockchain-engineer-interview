@@ -43,6 +43,22 @@ contract Controller {
 
     function uploadData(string memory docId) public returns (uint256) {
         // TODO: Implement this method: to start an uploading gene data session. The doc id is used to identify a unique gene profile. Also should check if the doc id has been submited to the system before. This method return the session id
+        require(!docSubmits[docId], "Document already submitted");
+
+        _sessionIdCounter.increment();
+        uint256 sessionId = _sessionIdCounter.current();
+
+        UploadSession storage session = sessions[sessionId];
+        session.id = sessionId;
+        session.user = msg.sender;
+        session.proof = "";
+        session.confirmed = false;
+
+        docSubmits[docId] = true;
+
+        emit UploadData(docId, sessionId);
+
+        return sessionId;
     }
 
     function confirm(
@@ -53,23 +69,33 @@ contract Controller {
         uint256 riskScore
     ) public {
         // TODO: Implement this method: The proof here is used to verify that the result is returned from a valid computation on the gene data. For simplicity, we will skip the proof verification in this implementation. The gene data's owner will receive a NFT as a ownership certicate for his/her gene profile.
-
+        require(bytes(proof).length > 0, "Proof must be provided");
         // TODO: Verify proof, we can skip this step
-
         // TODO: Update doc content
-
-        // TODO: Mint NFT 
-
+        DataDoc storage doc = docs[docId];
+        doc.id = docId;
+        doc.hashContent = contentHash;
+        // TODO: Mint NFT
+        geneNFT.mint(msg.sender, docId);
         // TODO: Reward PCSP token based on risk stroke
+        pcspToken.reward(msg.sender, riskScore);
 
-        // TODO: Close session
+        // Close session
+        UploadSession storage session = sessions[sessionId];
+        session.confirmed = true;
+        session.proof = proof;
+
+        // Update NFT mapping
+        nftDocs[sessionId] = docId;
     }
 
-    function getSession(uint256 sessionId) public view returns(UploadSession memory) {
+    function getSession(
+        uint256 sessionId
+    ) public view returns (UploadSession memory) {
         return sessions[sessionId];
     }
 
-    function getDoc(string memory docId) public view returns(DataDoc memory) {
+    function getDoc(string memory docId) public view returns (DataDoc memory) {
         return docs[docId];
     }
 }

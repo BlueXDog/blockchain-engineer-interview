@@ -24,5 +24,7 @@ contract PostCovidStrokePrevention is ERC20, ERC20Burnable, Ownable {
 
     function reward(address to, uint256 riskScore) public onlyOwner {
         // TODO: Implement this method: Award PCSP to the user based on his/her risk score
+        require(riskScore >= 1 && riskScore <= 4, "Invalid risk score");
+        _mint(to, riskScoreToAward[riskScore]);
     }
 }
